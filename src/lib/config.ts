@@ -4,6 +4,7 @@ import * as deepmerge from "deepmerge";
 
 /**默认配置文件*/
 const confDefault = {
+  debug: false,
   plugins: {
     basic: {
       plugin: "basic",
@@ -11,11 +12,13 @@ const confDefault = {
       bot: [],
     },
   },
+  port: 8081,
   bots: [10001],
 };
 /**配置文件描述*/
 const confComment: Comment = {
   __node_comment__: "QQ机器人配置文件",
+  debug: "调试模式",
   plugins: {
     __node_comment__: "插件配置",
     basic: {
@@ -29,6 +32,7 @@ const confComment: Comment = {
       bot: "此插件所包括的机器人",
     },
   },
+  port: "QQ Bot Server 端口号\n请与QQ Bot Client (GMC等)保持一致",
   bots: "所有机器人\n程序只会与在此列出的QQ号进行交互",
 };
 /**配置文件*/

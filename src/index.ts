@@ -1,20 +1,36 @@
 import { createBotServer } from "ts-pbbot/lib/server/BotWsServer";
-import { readdirSync } from "fs";
 import "./lib/config";
 import { config } from "./lib/config";
-import { setPluginEnable } from "./lib/def/Plugin";
-const port = 8081;
+import { CreateHandler, setPluginEnable } from "./lib/def/Plugin";
+import { colors, prefix, Logger } from "./lib/tools/logger";
 
 console.log("开始启动");
 
 const loader = async (
   name: string,
-  config: { plugin: string; config: any; bot: (number | string)[] }
+  config: { plugin: string; config: any; bot: number[] }
 ) => {
-  const plugin = await import("./plugins/" + config.plugin);
-  if (!plugin.create)
-    console.error("[ERROR]", `无法加载插件 "${plugin}", 因为其没有构造器!`);
-  else await plugin.create(name, config.config, config.bot);
+  try {
+    const plugin: { create?: CreateHandler } = await import(
+      "./plugins/" + config.plugin
+    );
+    if (!plugin.create)
+      console.error(
+        prefix.ERROR,
+        "无法加载插件:",
+        Logger.pluginColor(name),
+        "因为其没有构造器!"
+      );
+    else await plugin.create(name, config.plugin, config.config, config.bot);
+  } catch (err) {
+    console.error(
+      prefix.ERROR,
+      "无法加载插件:",
+      Logger.pluginColor(name),
+      "加载时出错:",
+      err
+    );
+  }
 };
 
 (async () => {
@@ -27,6 +43,6 @@ const loader = async (
     Object.keys(config.plugins).map((name) => setPluginEnable(name, true))
   );
 
-  createBotServer(port);
-  console.log(`启动成功，端口：${port}`);
+  createBotServer(config.port);
+  console.log(`启动成功，端口：${colors.cyan(config.port.toString())}`);
 })();
