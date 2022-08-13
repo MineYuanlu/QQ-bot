@@ -73,5 +73,6 @@ export const create = buildCreate(({ name, type, logger, config }) => {
     getHelp() {
       return ["!admin 列出管理员列表", "!admin [qq] 添加/移除管理员权限"];
     },
+    noClose: true,
   };
 });
