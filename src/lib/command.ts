@@ -89,14 +89,17 @@ export function registerCommand<E extends keyof MsgEventType>(
     if (cmd.indexOf(":") >= 0) throw new Error("非法命令: " + cmd);
   });
 
-  cmds.forEach((cmd) => {
-    const info: CommandInfo = { name, cmd, handler: {} };
+  const setInfo = (target: string, cmd: string) => {
+    const old: CommandInfo | undefined = commands[target];
+    const info: CommandInfo = { name, cmd, handler: { ...old?.handler } };
     (typeof type === "string" ? [type] : type).forEach(
       (t) => (info.handler[t] = handler as any)
     );
-
+    commands[target] = info;
+  };
+  cmds.forEach((cmd) => {
     if (!commands[cmd] || commands[cmd].name === name) {
-      commands[cmd] = info;
+      setInfo(cmd, cmd);
     } else {
       console.warn(
         prefix.CMD,
@@ -106,7 +109,7 @@ export function registerCommand<E extends keyof MsgEventType>(
         `冲突`
       );
     }
-    commands[`${name}:${cmd}`] = info;
+    setInfo(`${name}:${cmd}`, cmd);
   });
   console.log(
     prefix.CMD,
@@ -188,13 +191,13 @@ const handler = async <E extends keyof MsgEventType>(
 };
 
 registerInternal("handlePrivateMessage", (bot, event) =>
-  handler(bot, event, "private")
+  handler(bot, event as any, "private")
 );
 registerInternal("handleGroupMessage", (bot, event) =>
-  handler(bot, event, "group")
+  handler(bot, event as any, "group")
 );
 registerInternal("handleChannelMessage", (bot, event) =>
-  handler(bot, event, "channel")
+  handler(bot, event as any, "channel")
 );
 
 /**打印错误 */

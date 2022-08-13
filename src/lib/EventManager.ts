@@ -1,14 +1,33 @@
 import { Bot, EventHandler } from "ts-pbbot";
 import type * as event from "ts-pbbot/lib/proto/onebot_event";
 import { config } from "./config";
+import { MaybePromise } from "./def/common";
 import { isEnabled } from "./def/Plugin";
 import { colors, Logger, prefix } from "./tools/logger";
 import { randomStr } from "./tools/utils";
 
+/**
+ * 操作返回
+ */
+export const handlerAction = {
+  /**允许事件继续传播, 默认值 */
+  pass: new Object(),
+  /**阻止事件继续传播 */
+  prevent: new Object(),
+} as const;
+
+/**
+ * 处理方法
+ * @returns 操作返回
+ */
+export type HandlerFunc<T extends keyof EventHandlerDefine> = (
+  ...arg: Parameters<EventHandlerDefine[T]>
+) => MaybePromise<any>;
+
 /** 一个处理器 */
 export type Handler<T extends keyof EventHandlerDefine> = {
   /**处理函数 */
-  func: EventHandlerDefine[T];
+  func: HandlerFunc<T>;
   /**函数权重 */
   weight: number;
   /**插件名称 */
@@ -34,7 +53,7 @@ const bus: {
 export function register<T extends keyof EventHandlerDefine>(
   name: string,
   type: T,
-  func: EventHandlerDefine[T],
+  func: HandlerFunc<T>,
   weight: number = 0
 ): string {
   const key = `${name}-${type}-${randomStr()}`;
@@ -65,7 +84,7 @@ export function register<T extends keyof EventHandlerDefine>(
  */
 export function registerInternal<T extends keyof EventHandlerDefine>(
   type: T,
-  func: EventHandlerDefine[T],
+  func: HandlerFunc<T>,
   weight: number = 0
 ): string {
   const key = `${type}-${randomStr()}`;
@@ -93,14 +112,14 @@ export function registerInternal<T extends keyof EventHandlerDefine>(
  * @returns 事件实际处理器
  */
 function handler(type: keyof EventHandlerDefine) {
-  return async function () {
+  return async function (bot: Bot) {
     if (config.debug)
       console.debug(prefix.DEBUG, prefix.EVENT, "唤起事件:", colors.bold(type));
     const handlers: Handler<any>[] | undefined = bus[type];
     if (!handlers) return;
     for (const k in handlers) {
       const name = handlers[k].name;
-      if (!name || isEnabled(name)) {
+      if (!name || isEnabled(name, bot.botId || undefined)) {
         if (config.debug)
           console.debug(
             prefix.DEBUG,
@@ -109,7 +128,8 @@ function handler(type: keyof EventHandlerDefine) {
             "调用事件:",
             colors.bold(type)
           );
-        await handlers[k].func(...arguments);
+        const resp = await handlers[k].func(...arguments);
+        if (resp === handlerAction.prevent) return;
       }
     }
   };

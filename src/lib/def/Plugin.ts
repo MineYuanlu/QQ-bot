@@ -41,7 +41,7 @@ export const plugins: Record<
     /**使用的bot(留空则代表任意) */
     bot: number[];
     /**`bot`变量的set */
-    botSet: Set<number>;
+    botSet: Set<number> | null;
     /**是否正在启用 */
     enabled?: boolean;
   }
@@ -59,7 +59,7 @@ export const isEnabled = (
   if (!name) return false;
   const plugin = plugins[name];
   if (!plugin?.enabled) return false;
-  if (botId === undefined || !plugin.botSet.size) return true;
+  if (botId === undefined || !plugin.botSet || !plugin.botSet.size) return true;
   return plugin.botSet.has(Number(botId));
 };
 
@@ -103,6 +103,17 @@ export const setPluginEnable = async (
 
 /**
  * 构建插件创造器
+ *
+ * 每个插件都需要使用此函数返回值作为模块导出
+ *
+ * 例如:
+ * ```ts
+ * export const create = buildCreate(({ name, botSet, logger }) => {
+ *  return {}
+ * }
+ * ```
+ * 更多使用方法请参考内置插件
+ *
  * @param creater 插件创造器
  * @returns 构建结果
  */
@@ -112,12 +123,12 @@ export function buildCreate(
     type: string;
     config: any;
     bot: number[];
-    botSet: Set<number>;
+    botSet: Set<number> | null;
     logger: Logger;
   }) => MaybePromise<Plugin>
 ): CreateHandler {
   return async (name, type, config, bot) => {
-    const botSet = new Set(bot);
+    const botSet = bot.length ? new Set(bot) : null;
     const plugin = await creater({
       name,
       type,

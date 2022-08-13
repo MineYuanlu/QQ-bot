@@ -30,4 +30,28 @@ export class Logger {
   public static pluginColor(name: string | undefined) {
     return name ? `[${colors.yellow(name)}]` : `[${colors.red("internal")}]`;
   }
+  /**
+   * 包装QQ数字
+   * @param qq 数字
+   * @param type `B`:Bot, `G`:Group, `U`:User
+   */
+  public static qqColor(
+    qq: string | number | undefined,
+    type: "B" | "G" | "U" | undefined
+  ) {
+    return qq
+      ? `${colors.red(type || "")}[${(colors as any).brightYellow(
+          qq.toString()
+        )}]`
+      : "";
+  }
+  /**包装频道*/
+  public static channelColor(
+    channelId: string | number,
+    guildId: string | number
+  ) {
+    return `${colors.red("C")}[${(colors as any).brightYellow(
+      channelId.toString()
+    )}/${(colors as any).brightYellow(guildId.toString())}]`;
+  }
 }

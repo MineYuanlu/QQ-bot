@@ -79,7 +79,8 @@ export const toMsg = (mb: MessageBack): Msg | undefined => {
   msg.messageList.push(mb);
   return msg;
 };
-
+/**新行的msg */
+const newLineMsg = Msg.builder().text("\n").messageList[0];
 export const sendMsg = async <E extends keyof MsgEventType>(
   type: E,
   bot: Bot,
@@ -104,7 +105,7 @@ export const sendMsg = async <E extends keyof MsgEventType>(
           (event as GroupMessageEvent).userId,
           event.sender?.nickname || "-"
         );
-        msg.messageList.unshift(msg.messageList.pop()!);
+        msg.messageList.unshift(msg.messageList.pop()!, newLineMsg);
       }
       return await bot.sendGroupMessage(
         (event as GroupMessageEvent).groupId,
@@ -115,7 +116,7 @@ export const sendMsg = async <E extends keyof MsgEventType>(
         const id = (event as ChannelMessageEvent).sender?.tinyId;
         if (id) {
           msg.at(id, event.sender?.nickname || "-");
-          msg.messageList.unshift(msg.messageList.pop()!);
+          msg.messageList.unshift(msg.messageList.pop()!, newLineMsg);
         }
       }
       return await bot.sendChannelMessage(
