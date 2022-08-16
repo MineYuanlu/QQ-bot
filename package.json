@@ -6,6 +6,7 @@
   "scripts": {
     "start": "npm run build:live",
     "build": "tsc -p .",
+    "server": "node lib/index.js",
     "build:live": "nodemon --watch 'src/**/*.js' --exec \"ts-node\" src/index.ts"
   },
   "author": "yuanlu",
