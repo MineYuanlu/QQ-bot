@@ -100,7 +100,21 @@ export const setPluginEnable = async (
     return `${enable ? "启动" : "关闭"} ${name} 插件时出错\n${err}`;
   }
 };
-
+/**创建参数 */
+export type CreateArgs = {
+  /**插件实例化名称 */
+  name: string;
+  /**插件类型(即插件文件名) */
+  type: string;
+  /**插件实例化参数 */
+  config: any;
+  /**目标机器人 */
+  bot: number[];
+  /**目标机器人的集合(null代表为空, 即接受任意机器人) */
+  botSet: Set<number> | null;
+  /**简易日志 */
+  logger: Logger;
+};
 /**
  * 构建插件创造器
  *
@@ -118,14 +132,7 @@ export const setPluginEnable = async (
  * @returns 构建结果
  */
 export function buildCreate(
-  creater: (data: {
-    name: string;
-    type: string;
-    config: any;
-    bot: number[];
-    botSet: Set<number> | null;
-    logger: Logger;
-  }) => MaybePromise<Plugin>
+  creater: (data: CreateArgs) => MaybePromise<Plugin>
 ): CreateHandler {
   return async (name, type, config, bot) => {
     const botSet = bot.length ? new Set(bot) : null;

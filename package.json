@@ -1,16 +1,37 @@
 {
-  "name": "qq-bot-2",
-  "version": "1.0.0",
-  "description": "",
-  "main": "output/index.js",
+  "name": "@yuanlu_yl/qq-bot",
+  "version": "0.0.1",
+  "description": "A QQ robot frame",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "start": "npm run build:live",
+    "dev": "npm run build:live",
     "build": "tsc -p .",
-    "server": "node lib/index.js",
+    "server": "node dist/index.js",
     "build:live": "nodemon --watch 'src/**/*.js' --exec \"ts-node\" src/index.ts"
   },
+  "keywords": [
+    "bot",
+    "qqbot",
+    "cqhttp",
+    "protobufbot",
+    "pbbot",
+    "qqrobot",
+    "mirai"
+  ],
   "author": "yuanlu",
-  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MineYuanlu/QQ-bot/issues"
+  },
+  "homepage": "https://github.com/MineYuanlu/QQ-bot",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MineYuanlu/QQ-bot"
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "license": "AGPL-3.0-or-later",
   "dependencies": {
     "colors": "^1.4.0",
     "deepmerge": "^4.2.2",
