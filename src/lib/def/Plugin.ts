@@ -1,6 +1,13 @@
-import { MaybePromise } from "./common";
+import { Expand, MaybePromise } from "./common";
 import { prefix, Logger } from "../tools/logger";
-import { MessageBack } from "./Message";
+import { MessageBack, MsgEventType } from "./Message";
+import { channel2guild, ServiceString, toServiceString } from "./ServiceString";
+import {
+  ChannelMessageEvent,
+  GroupMessageEvent,
+  PrivateMessageEvent,
+} from "ts-pbbot/lib/proto/onebot_event";
+import { isAdmin } from "../../plugins/admin";
 
 /**
  * 插件定义
@@ -23,28 +30,42 @@ export type CreateHandler = (
   name: string,
   type: string,
   config: any,
-  bot: number[]
+  bot: number[],
+  service: ServiceString[]
 ) => MaybePromise<void>;
 
+/**创建参数 */
+export type CreateArgs = {
+  /**插件实例化名称 */
+  name: string;
+  /**插件类型(即插件文件名) */
+  type: string;
+  /**插件实例化参数 */
+  config: any;
+  /**目标机器人 */
+  bot: number[];
+  /**目标机器人的集合(null代表为空, 即接受任意机器人) */
+  botSet: Set<number> | null;
+  /**服务目标 */
+  service: ServiceString[];
+  /**服务目标的集合(null代表为空, 即服务任何目标) */
+  serviceSet: Set<ServiceString> | null;
+  /**简易日志 */
+  logger: Logger;
+};
 /**
  * 所有的插件
  */
 export const plugins: Record<
   string,
-  {
-    /**插件类型 */
-    type: string;
-    /**插件实体 */
-    plugin: Plugin;
-    /**配置文件 */
-    config: any;
-    /**使用的bot(留空则代表任意) */
-    bot: number[];
-    /**`bot`变量的set */
-    botSet: Set<number> | null;
-    /**是否正在启用 */
-    enabled?: boolean;
-  }
+  Expand<
+    CreateArgs & {
+      /**插件实体 */
+      plugin: Plugin;
+      /**是否正在启用 */
+      enabled?: boolean;
+    }
+  >
 > = {};
 
 /**
@@ -52,16 +73,68 @@ export const plugins: Record<
  * @param name 插件名称
  * @returns 插件是否启动
  */
-export const isEnabled = (
+export function isEnabled(name: string | undefined) {
+  if (!name) return false;
+  return !!plugins[name]?.enabled;
+}
+
+/**
+ * 判断一个活动(事件/命令等)是否需要指定插件处理
+ * @param name 指定的插件名称
+ * @param botId 此活动所涉及的bot
+ * @param ss 此活动所涉及的目标
+ * @returns 是否需要处理
+ */
+export function isNeedHandle(
   name: string | undefined,
-  botId?: string | number
-) => {
+  botId: string | number | undefined,
+  ss: ServiceString | undefined
+): boolean {
   if (!name) return false;
   const plugin = plugins[name];
   if (!plugin?.enabled) return false;
-  if (botId === undefined || !plugin.botSet || !plugin.botSet.size) return true;
-  return plugin.botSet.has(Number(botId));
-};
+  if (botId !== undefined && plugin.botSet && !plugin.botSet.has(Number(botId)))
+    return false;
+  if (ss !== undefined && plugin.serviceSet && !plugin.serviceSet.has(ss)) {
+    const gss = channel2guild(ss);
+    if (!gss || !plugin.serviceSet.has(gss)) return false;
+  }
+  return true;
+}
+
+/**
+ * 判断一个事件是否需要指定插件处理
+ * @param name 指定的插件名称
+ * @param event 事件
+ * @param type 事件类型
+ * @returns 是否需要处理
+ */
+export function isNeedHandleEvent<T extends keyof MsgEventType>(
+  name: string | undefined,
+  event: MsgEventType[T],
+  type: T
+): boolean {
+  let ss: ServiceString;
+  switch (type) {
+    case "private":
+      if (isAdmin((event as PrivateMessageEvent).userId)) return true;
+      ss = toServiceString("U", (event as PrivateMessageEvent).userId);
+      break;
+    case "group":
+      ss = toServiceString("G", (event as GroupMessageEvent).groupId);
+      break;
+    case "channel":
+      ss = toServiceString(
+        "C",
+        (event as ChannelMessageEvent).guildId,
+        (event as ChannelMessageEvent).channelId
+      );
+      break;
+    default:
+      throw new Error("Unknown Type: " + type);
+  }
+  return isNeedHandle(name, event.selfId, ss);
+}
 
 /**
  * 设置插件的启动状态
@@ -69,10 +142,10 @@ export const isEnabled = (
  * @param enable 是否启动
  * @returns 错误消息(`string`) / 完成操作(`undefined`)
  */
-export const setPluginEnable = async (
+export async function setPluginEnable(
   name: string | undefined,
   enable: boolean
-): Promise<string | undefined> => {
+): Promise<string | undefined> {
   const plugin = name ? plugins[name] : undefined;
   if (!plugin) return "找不到插件";
   if (plugin.plugin.noClose && !enable) {
@@ -99,22 +172,7 @@ export const setPluginEnable = async (
     plugin.enabled = false;
     return `${enable ? "启动" : "关闭"} ${name} 插件时出错\n${err}`;
   }
-};
-/**创建参数 */
-export type CreateArgs = {
-  /**插件实例化名称 */
-  name: string;
-  /**插件类型(即插件文件名) */
-  type: string;
-  /**插件实例化参数 */
-  config: any;
-  /**目标机器人 */
-  bot: number[];
-  /**目标机器人的集合(null代表为空, 即接受任意机器人) */
-  botSet: Set<number> | null;
-  /**简易日志 */
-  logger: Logger;
-};
+}
 /**
  * 构建插件创造器
  *
@@ -134,16 +192,30 @@ export type CreateArgs = {
 export function buildCreate(
   creater: (data: CreateArgs) => MaybePromise<Plugin>
 ): CreateHandler {
-  return async (name, type, config, bot) => {
+  return async (name, type, config, bot, service) => {
     const botSet = bot.length ? new Set(bot) : null;
+    const serviceSet = service.length ? new Set(service) : null;
+    const logger = new Logger(name);
     const plugin = await creater({
       name,
       type,
       config,
       bot,
       botSet,
-      logger: new Logger(name),
+      logger,
+      service,
+      serviceSet,
     });
-    plugins[name] = { type, plugin, config, bot, botSet };
+    plugins[name] = {
+      name,
+      type,
+      plugin,
+      config,
+      bot,
+      botSet,
+      logger,
+      service,
+      serviceSet,
+    };
   };
 }

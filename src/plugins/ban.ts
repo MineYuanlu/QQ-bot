@@ -1,4 +1,4 @@
-import { registerCommand } from "../lib/command";
+import { cmdTag, registerCommand } from "../lib/command";
 import { getNumberByMsg } from "../lib/tools/utils";
 import { buildCreate } from "../lib/def/Plugin";
 import { pluginDir, readQQ, writeQQ } from "../lib/tools/files";
@@ -103,13 +103,13 @@ export const create = buildCreate(({ name, type, logger }) => {
     },
     getHelp({ groupId }) {
       return [
-        "!ban 查询封禁名单",
-        "!ban <qq号/艾特> 拉黑用户",
-        "!unban <qq号/艾特> 解除拉黑",
-        `!ban-check ${
+        `${cmdTag}ban 查询封禁名单`,
+        `${cmdTag}ban <qq号/艾特> 拉黑用户`,
+        `${cmdTag}unban <qq号/艾特> 解除拉黑`,
+        `${cmdTag}ban-check ${
           groupId ? "[qq群号]" : "<qq群号>"
         } 列出此群内被拉黑的用户`,
-        `!ban-kick ${
+        `${cmdTag}ban-kick ${
           groupId ? "[qq群号]" : "<qq群号>"
         } 将此群内被拉黑的用户踢出`,
       ];

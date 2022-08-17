@@ -16,9 +16,11 @@ import {
   sendMsg,
   toMsg,
 } from "./def/Message";
-import { isEnabled, plugins } from "./def/Plugin";
+import { isEnabled, isNeedHandleEvent, plugins } from "./def/Plugin";
 import { registerInternal } from "./EventManager";
 import { colors, Logger, prefix } from "./tools/logger";
+
+export const cmdTag = "!";
 
 /**
  * 命令处理器的参数
@@ -152,14 +154,19 @@ const handler = async <E extends keyof MsgEventType>(
   if (fst?.type !== "text" || !fst.data.text) return;
   const fstTxt = fst.data.text.trimStart().split(" ");
   let realcmd = fstTxt[0];
-  if (!realcmd || realcmd.length < 2 || !realcmd.startsWith("!")) return;
+  if (
+    !realcmd ||
+    realcmd.length < cmdTag.length + 1 ||
+    !realcmd.startsWith(cmdTag)
+  )
+    return;
 
   //获取命令并检测插件是否正在使用
-  realcmd = realcmd.substring(1);
+  realcmd = realcmd.substring(cmdTag.length);
   const cmd = commands[realcmd];
   const handler = cmd.handler[type];
   if (!cmd || !handler) return;
-  if (!isEnabled(cmd.name, event.selfId)) return;
+  if (!isNeedHandleEvent(cmd.name, event, type)) return;
 
   //调试
   if (config.debug)

@@ -1,5 +1,5 @@
 import { Msg } from "ts-pbbot";
-import { registerCommand } from "../lib/command";
+import { cmdTag, registerCommand } from "../lib/command";
 import { toMsg } from "../lib/def/Message";
 import { buildCreate, Plugin, plugins } from "../lib/def/Plugin";
 import { register } from "../lib/EventManager";
@@ -48,7 +48,7 @@ export const create = buildCreate(({ name, logger }) => {
       logger.info("插件关闭");
     },
     getHelp({}) {
-      return "!help / !帮助   列出帮助列表";
+      return `${cmdTag}help / !帮助   列出帮助列表`;
     },
     noClose: true,
   };

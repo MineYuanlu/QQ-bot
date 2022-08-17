@@ -2,16 +2,24 @@ import { createBotServer } from "ts-pbbot/lib/server/BotWsServer";
 import "./lib/config";
 import { config } from "./lib/config";
 import { CreateHandler, setPluginEnable } from "./lib/def/Plugin";
+import { isServiceString } from "./lib/def/ServiceString";
 import { handlerAction, registerInternal } from "./lib/EventManager";
 import { colors, prefix, Logger } from "./lib/tools/logger";
+import { toArray } from "./lib/tools/utils";
 
 console.log("开始启动");
 
 const loader = async (
   name: string,
-  config: { plugin: string; config?: any; bot?: number[] | number }
+  config: {
+    plugin: string;
+    config?: any;
+    bot?: number[] | number;
+    service?: string[];
+  }
 ) => {
   try {
+    if (!config.plugin) return;
     const plugin: { create?: CreateHandler } = await import(
       "./plugins/" + config.plugin
     );
@@ -23,11 +31,13 @@ const loader = async (
         "因为其没有构造器!"
       );
     else {
-      let bot: number[];
-      if (Array.isArray(config.bot)) bot = config.bot.filter((x) => !isNaN(x));
-      else if (typeof config.bot === "number") bot = [config.bot];
-      else bot = [];
-      await plugin.create(name, config.plugin, config.config || {}, bot);
+      const conf = config.config || {};
+      const bot = toArray(config.bot, (x): x is number => !!x && !isNaN(x)).map(
+        (x) => Number(x)
+      );
+      const service = toArray(config.service, isServiceString);
+
+      await plugin.create(name, config.plugin, conf, bot, service);
     }
   } catch (err) {
     console.error(
@@ -41,6 +51,7 @@ const loader = async (
 };
 
 (async () => {
+  //bot白名单
   const bots = ((arr) => {
     if (
       arr &&
@@ -75,15 +86,20 @@ const loader = async (
       (bot) => bots.has(bot.botId) || handlerAction.prevent
     );
   }
+
+  //插件注册
   await Promise.all(
     Object.keys(config.plugins).map((key) =>
       loader(key, config.plugins[key as keyof typeof config.plugins])
     )
   );
+
+  //插件启动
   await Promise.all(
     Object.keys(config.plugins).map((name) => setPluginEnable(name, true))
   );
 
+  //服务器启动
   createBotServer(config.port);
   console.log(`启动成功，端口：${colors.cyan(config.port.toString())}`);
 })();
