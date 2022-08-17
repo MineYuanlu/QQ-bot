@@ -7,6 +7,7 @@ import {
   GroupMessageEvent,
   PrivateMessageEvent,
 } from "ts-pbbot/lib/proto/onebot_event";
+import { isAdmin } from "../../plugins/admin";
 
 /**
  * 插件定义
@@ -116,6 +117,7 @@ export function isNeedHandleEvent<T extends keyof MsgEventType>(
   let ss: ServiceString;
   switch (type) {
     case "private":
+      if (isAdmin((event as PrivateMessageEvent).userId)) return true;
       ss = toServiceString("U", (event as PrivateMessageEvent).userId);
       break;
     case "group":

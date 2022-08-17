@@ -5,6 +5,7 @@ import * as LRUCache from "lru-cache";
 import { Logger } from "../lib/tools/logger";
 import { ServiceString, toServiceString } from "../lib/def/ServiceString";
 import { MessageReceipt } from "ts-pbbot/lib/proto/onebot_base";
+import { isAdmin } from "./admin";
 
 const lru = new LRUCache<string, true>({ max: 500, ttl: 1000 * 60 });
 /**
@@ -43,7 +44,7 @@ export const create = buildCreate(({ name, logger }) => {
   register(name, "handlePrivateMessage", async (bot, event) => {
     if (!event) return;
     const ss = toServiceString("U", event.userId);
-    if (!isNeedHandle(name, bot.botId, ss)) return;
+    if (!isAdmin(event.userId) && !isNeedHandle(name, bot.botId, ss)) return;
     if (needSkip(ss, event)) return;
 
     log("私聊", bot.botId, Logger.qqColor(event.userId, "U"), event.rawMessage);
