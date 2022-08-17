@@ -2,7 +2,7 @@ import { Bot, EventHandler } from "ts-pbbot";
 import type * as event from "ts-pbbot/lib/proto/onebot_event";
 import { config } from "./config";
 import { MaybePromise } from "./def/common";
-import { isEnabled } from "./def/Plugin";
+import { isEnabled, isNeedHandle } from "./def/Plugin";
 import { colors, Logger, prefix } from "./tools/logger";
 import { randomStr } from "./tools/utils";
 
@@ -119,7 +119,7 @@ function handler(type: keyof EventHandlerDefine) {
     if (!handlers) return;
     for (const k in handlers) {
       const name = handlers[k].name;
-      if (!name || isEnabled(name, bot.botId || undefined)) {
+      if (!name || isNeedHandle(name, bot.botId || undefined, undefined)) {
         if (config.debug)
           console.debug(
             prefix.DEBUG,
@@ -194,3 +194,12 @@ export type EventHandlerDefine = {
     event: event.ChannelMessageEvent | undefined
   ): Promise<void>;
 };
+
+type GetEvent<T> = T extends [Bot, infer S] ? S : never;
+/**
+ * 所有需要处理的事件类型
+ */
+export type EventTypes = Exclude<
+  GetEvent<Parameters<EventHandlerDefine[keyof EventHandlerDefine]>>,
+  undefined
+>;

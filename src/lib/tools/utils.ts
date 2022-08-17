@@ -1,4 +1,5 @@
 import { Message } from "ts-pbbot/lib/proto/onebot_base";
+import { MaybeArray } from "../def/common";
 
 /**
  * 随机字符串
@@ -41,4 +42,19 @@ export const getNumberByMsg = (
   const num = Number(str);
   if (isNaN(num)) return str;
   return num;
+};
+
+/**
+ * 将`MaybeArray`转换为`Array`
+ * @param data 数据
+ * @param predicate 元素判别
+ * @returns Array
+ */
+export const toArray = <T, E extends T>(
+  data: MaybeArray<T>,
+  predicate: (data: T) => data is E
+): Array<E> => {
+  if (!Array.isArray(data)) data = [data];
+  if (predicate) data = data.filter(predicate);
+  return data as any;
 };

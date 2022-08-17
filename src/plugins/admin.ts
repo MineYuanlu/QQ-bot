@@ -1,6 +1,6 @@
 import { buildCreate } from "../lib/def/Plugin";
 import "colors";
-import { registerCommand } from "../lib/command";
+import { cmdTag, registerCommand } from "../lib/command";
 import { getNumberByMsg } from "../lib/tools/utils";
 import { pluginDir, readQQ, writeQQ } from "../lib/tools/files";
 
@@ -71,7 +71,10 @@ export const create = buildCreate(({ name, type, logger, config }) => {
       logger.info("插件关闭");
     },
     getHelp() {
-      return ["!admin 列出管理员列表", "!admin [qq] 添加/移除管理员权限"];
+      return [
+        `${cmdTag}admin 列出管理员列表`,
+        `${cmdTag}admin [qq] 添加/移除管理员权限`,
+      ];
     },
     noClose: true,
   };
