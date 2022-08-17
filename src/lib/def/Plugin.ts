@@ -7,7 +7,6 @@ import {
   GroupMessageEvent,
   PrivateMessageEvent,
 } from "ts-pbbot/lib/proto/onebot_event";
-import { isAdmin } from "../../plugins/admin";
 
 /**
  * 插件定义
@@ -219,3 +218,5 @@ export function buildCreate(
     };
   };
 }
+
+import { isAdmin } from "../../plugins/admin";
