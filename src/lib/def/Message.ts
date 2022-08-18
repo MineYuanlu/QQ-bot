@@ -1,12 +1,15 @@
-import { type } from "os";
 import { Bot, Msg } from "ts-pbbot";
+import {
+  SendChannelMsgResp,
+  SendGroupMsgResp,
+  SendPrivateMsgResp,
+} from "ts-pbbot/lib/proto/onebot_api";
 import { Message } from "ts-pbbot/lib/proto/onebot_base";
 import {
   PrivateMessageEvent,
   GroupMessageEvent,
   ChannelMessageEvent,
 } from "ts-pbbot/lib/proto/onebot_event";
-import { prefix } from "../tools/logger";
 import { MaybeArray } from "./common";
 
 export type MessageAt = {
@@ -46,11 +49,19 @@ export type MsgEventType = {
   channel: ChannelMessageEvent;
 };
 /**
+ * 消息类型
+ */
+export type MsgEventRespType = {
+  private: SendPrivateMsgResp;
+  group: SendGroupMsgResp;
+  channel: SendChannelMsgResp;
+};
+/**
  * 将信息组转换为一串信息
  * @param mb 信息组
  * @returns 一串信息
  */
-export const toMsg = (mb: MessageBack): Msg | undefined => {
+export function toMsg(mb: MessageBack): Msg | undefined {
   if (mb === undefined || typeof mb === "string") return s2m(mb);
   if (mb instanceof Msg) return checkMsg(mb.messageList) ? mb : undefined;
   if (Array.isArray(mb)) {
@@ -78,23 +89,31 @@ export const toMsg = (mb: MessageBack): Msg | undefined => {
   const msg = Msg.builder();
   msg.messageList.push(mb);
   return msg;
-};
+}
 /**新行的msg */
 const newLineMsg = Msg.builder().text("\n").messageList[0];
-export const sendMsg = async <E extends keyof MsgEventType>(
+/**
+ * 响应消息
+ * @param type 消息类型
+ * @param bot 机器人
+ * @param event 消息事件
+ * @param msg 响应消息
+ * @param response 响应方式
+ * @returns 发送响应
+ */
+export async function sendBackMsg<E extends keyof MsgEventType>(
   type: E,
   bot: Bot,
   event: MsgEventType[E],
   msg: MessageBack,
-  response: "re" | "at" | "no"
-) => {
-  if (!(msg = toMsg(msg))) return false;
+  response: "re" | "at" | "no" = "re"
+): Promise<MsgEventRespType[E]["messageId"] | undefined> {
+  if (!(msg = toMsg(msg))) return undefined;
   switch (type) {
     case "private":
-      return await bot.sendPrivateMessage(
-        (event as PrivateMessageEvent).userId,
-        msg
-      );
+      return (
+        await bot.sendPrivateMessage((event as PrivateMessageEvent).userId, msg)
+      )?.messageId;
     case "group":
       if (response === "re") {
         //TODO reply无法使用
@@ -107,10 +126,9 @@ export const sendMsg = async <E extends keyof MsgEventType>(
         );
         msg.messageList.unshift(msg.messageList.pop()!, newLineMsg);
       }
-      return await bot.sendGroupMessage(
-        (event as GroupMessageEvent).groupId,
-        msg
-      );
+      return (
+        await bot.sendGroupMessage((event as GroupMessageEvent).groupId, msg)
+      )?.messageId;
     case "channel":
       if (response === "at") {
         const id = (event as ChannelMessageEvent).sender?.tinyId;
@@ -119,13 +137,17 @@ export const sendMsg = async <E extends keyof MsgEventType>(
           msg.messageList.unshift(msg.messageList.pop()!, newLineMsg);
         }
       }
-      return await bot.sendChannelMessage(
-        (event as ChannelMessageEvent).guildId,
-        (event as ChannelMessageEvent).channelId,
-        msg
-      );
+      return (
+        await bot.sendChannelMessage(
+          (event as ChannelMessageEvent).guildId,
+          (event as ChannelMessageEvent).channelId,
+          msg
+        )
+      )?.messageId;
+    default:
+      throw new Error("Unknown type: " + type);
   }
-};
+}
 
 /** string to Msg */
 function s2m(msg: string | undefined) {

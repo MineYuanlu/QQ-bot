@@ -1,10 +1,5 @@
 import { Bot } from "ts-pbbot";
-import { Message } from "ts-pbbot/lib/proto/onebot_base";
-import type {
-  PrivateMessageEvent,
-  GroupMessageEvent,
-  ChannelMessageEvent,
-} from "ts-pbbot/lib/proto/onebot_event";
+import { Message, MessageReceipt } from "ts-pbbot/lib/proto/onebot_base";
 import { config } from "./config";
 import { MaybePromise } from "./def/common";
 import {
@@ -12,13 +7,15 @@ import {
   MessageBack,
   MessageCommonType,
   MessageText,
+  MsgEventRespType,
   MsgEventType,
-  sendMsg,
-  toMsg,
+  sendBackMsg,
 } from "./def/Message";
-import { isEnabled, isNeedHandleEvent, plugins } from "./def/Plugin";
+import { isNeedHandleEvent } from "./def/Plugin";
 import { registerInternal } from "./EventManager";
 import { colors, Logger, prefix } from "./tools/logger";
+import * as LRUcache from "lru-cache";
+import { deleteTempMsg, watchTempMsg } from "./def/TempMsg";
 
 export const cmdTag = "!";
 
@@ -41,8 +38,21 @@ export type CommandArgs<E extends keyof MsgEventType> = {
 
   /**
    * 发出加载提示
+   *
+   * (一个命令)同时只能存在一条提示, 如果发送第二条, 那么上一条提示将会被撤回
+   *
+   * 如果不传入参数则会立即撤回当前的提示信息, 如果最终不调用撤回, 则会在消息超出普通用户可撤回期限前撤回(约90秒)
+   * @param txt 发出提示
+   * @return 状态, 当状态为false时, 不应继续发送新的加载提示
+   *
+   * 以下情况会返回false:
+   * 1. 命令在channel上触发, channel目前不支持撤回, 所以消息不会发出
+   * 2. bot客户端版本过低, 无法撤回消息, 此时消息已经发出, 但无法自动撤回
    */
-  loadingNotice: (finish?: boolean) => Promise<void>;
+  loadingNotice: (
+    txt?: MessageBack,
+    response?: "re" | "at" | "no"
+  ) => Promise<boolean>;
   /**
    * 机器人
    */
@@ -183,6 +193,7 @@ const handler = async <E extends keyof MsgEventType>(
   if (!fstTxt.length || !(fst.data.text = fstTxt.join(" ").trim()))
     message.shift();
 
+  let loadingMsg: string;
   await handler({
     cmd: cmd.cmd,
     realcmd,
@@ -191,9 +202,28 @@ const handler = async <E extends keyof MsgEventType>(
     event,
     type,
     async back(msg, response = "re") {
-      sendMsg(type, bot, event, msg, response);
+      sendBackMsg(type, bot, event, msg, response);
     },
-    async loadingNotice(finish = false) {},
+    async loadingNotice(msg, response = "re") {
+      if (type === "channel") return false; //暂不支持撤回频道消息, 所以取消
+
+      if (loadingMsg) deleteTempMsg(loadingMsg);
+      if (msg) {
+        const id = await sendBackMsg(type, bot, event, msg, response);
+        if (!id) {
+          console.warn(
+            prefix.WARN,
+            prefix.CMD,
+            "机器人",
+            Logger.qqColor(bot.botId, "B"),
+            "不支持消息撤回, 消息已发出,无法撤回! 请及时更新机器人版本"
+          );
+          return false;
+        }
+        loadingMsg = watchTempMsg(bot, id as MessageReceipt);
+      }
+      return true;
+    },
   });
 };
 
