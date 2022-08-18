@@ -1,5 +1,7 @@
 # QQ-bot
 
+main状态: [![Node.js CI](https://github.com/MineYuanlu/QQ-bot/actions/workflows/node.js.yml/badge.svg?branch=main)](https://github.com/MineYuanlu/QQ-bot/actions/workflows/node.js.yml)
+
 插件驱动的机器人框架, 使用[2mf8/TSPbBot](https://github.com/2mf8/TSPbBot)作为核心  
 
 ## 框架特性
