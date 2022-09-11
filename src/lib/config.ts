@@ -48,6 +48,10 @@ const confComment: Comment = {
       __node_comment__: '显示帮助列表',
       plugin: '',
     },
+    census: {
+      __node_comment__: '记录数据',
+      plugin: '',
+    },
     admin: {
       __node_comment__: '机器人管理员',
       plugin: '',
