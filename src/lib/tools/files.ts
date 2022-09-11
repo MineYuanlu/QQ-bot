@@ -1,8 +1,8 @@
-import { mkdirSync, existsSync, readFileSync, writeFileSync } from "fs";
-import { resolve } from "path";
+import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'fs';
+import { resolve } from 'path';
 
 /**运行时文件夹 */
-export const runtimeDir = resolve("runtime");
+export const runtimeDir = resolve('runtime');
 mkdir(runtimeDir);
 
 /**
@@ -27,11 +27,11 @@ function mkdir(dir: string) {
  * @returns QQ号
  */
 export const readQQ = (dir: string, file: string): number[] => {
-  file = resolve(dir, file + ".qq.txt");
+  file = resolve(dir, file + '.qq.txt');
   if (!existsSync(file)) return [];
-  return readFileSync(file, "utf8") //
-    .replace(/\r/g, "") //
-    .split("\n") //
+  return readFileSync(file, 'utf8') //
+    .replace(/\r/g, '') //
+    .split('\n') //
     .map((x) => parseInt(x.trim())) //
     .filter((x) => !isNaN(x));
 };
@@ -42,16 +42,10 @@ export const readQQ = (dir: string, file: string): number[] => {
  * @param file 文件名
  * @param qq QQ号
  */
-export const writeQQ = (
-  dir: string,
-  file: string,
-  qq: number[] | Set<number>
-): void => {
+export const writeQQ = (dir: string, file: string, qq: number[] | Set<number>): void => {
   writeFileSync(
-    resolve(dir, file + ".qq.txt"),
-    (Array.isArray(qq) ? qq : Array.from(qq))
-      .filter((x) => !isNaN(x))
-      .join("\n"),
-    "utf8"
+    resolve(dir, file + '.qq.txt'),
+    (Array.isArray(qq) ? qq : Array.from(qq)).filter((x) => !isNaN(x)).join('\n'),
+    'utf8',
   );
 };

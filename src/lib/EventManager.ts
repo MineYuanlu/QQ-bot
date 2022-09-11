@@ -1,10 +1,10 @@
-import { Bot, EventHandler } from "ts-pbbot";
-import type * as event from "ts-pbbot/lib/proto/onebot_event";
-import { config } from "./config";
-import { MaybePromise } from "./def/common";
-import { isEnabled, isNeedHandle } from "./def/Plugin";
-import { colors, Logger, prefix } from "./tools/logger";
-import { randomStr } from "./tools/utils";
+import { Bot, EventHandler } from 'ts-pbbot';
+import type event from 'ts-pbbot/lib/proto/onebot_event';
+import { config } from './config';
+import { MaybePromise } from './def/common';
+import { isNeedHandle } from './def/Plugin';
+import { colors, Logger, prefix } from './tools/logger';
+import { randomStr } from './tools/utils';
 
 /**
  * 操作返回
@@ -54,7 +54,7 @@ export function register<T extends keyof EventHandlerDefine>(
   name: string,
   type: T,
   func: HandlerFunc<T>,
-  weight: number = 0
+  weight: number = 0,
 ): string {
   const key = `${name}-${type}-${randomStr()}`;
   let handlers = bus[type];
@@ -67,10 +67,10 @@ export function register<T extends keyof EventHandlerDefine>(
   console.log(
     prefix.EVENT,
     Logger.pluginColor(name),
-    "已注册事件:",
+    '已注册事件:',
     colors.bold(type),
-    "优先级:",
-    colors.bold(weight.toString())
+    '优先级:',
+    colors.bold(weight.toString()),
   );
   return key;
 }
@@ -85,7 +85,7 @@ export function register<T extends keyof EventHandlerDefine>(
 export function registerInternal<T extends keyof EventHandlerDefine>(
   type: T,
   func: HandlerFunc<T>,
-  weight: number = 0
+  weight: number = 0,
 ): string {
   const key = `${type}-${randomStr()}`;
   let handlers = bus[type];
@@ -98,10 +98,10 @@ export function registerInternal<T extends keyof EventHandlerDefine>(
 
   console.log(
     prefix.EVENT,
-    "已注册内部事件:",
+    '已注册内部事件:',
     colors.bold(type),
-    "优先级:",
-    colors.bold(weight.toString())
+    '优先级:',
+    colors.bold(weight.toString()),
   );
   return key;
 }
@@ -113,8 +113,7 @@ export function registerInternal<T extends keyof EventHandlerDefine>(
  */
 function handler(type: keyof EventHandlerDefine) {
   return async function (bot: Bot) {
-    if (config.debug)
-      console.debug(prefix.DEBUG, prefix.EVENT, "唤起事件:", colors.bold(type));
+    if (config.debug) console.debug(prefix.DEBUG, prefix.EVENT, '唤起事件:', colors.bold(type));
     const handlers: Handler<any>[] | undefined = bus[type];
     if (!handlers) return;
     for (const k in handlers) {
@@ -125,8 +124,8 @@ function handler(type: keyof EventHandlerDefine) {
             prefix.DEBUG,
             prefix.EVENT,
             Logger.pluginColor(handlers[k].name),
-            "调用事件:",
-            colors.bold(type)
+            '调用事件:',
+            colors.bold(type),
           );
         const resp = await handlers[k].func(...arguments);
         if (resp === handlerAction.prevent) return;
@@ -141,58 +140,28 @@ function handler(type: keyof EventHandlerDefine) {
 export type EventHandlerDefine = {
   handleConnect(bot: Bot): Promise<void>;
   handleDisconnect(bot: Bot): Promise<void>;
-  handlePrivateMessage(
-    bot: Bot,
-    event: event.PrivateMessageEvent | undefined
-  ): Promise<void>;
-  handleGroupMessage(
-    bot: Bot,
-    event: event.GroupMessageEvent | undefined
-  ): Promise<void>;
-  handleGroupUploadNotice(
-    bot: Bot,
-    event: event.GroupUploadNoticeEvent | undefined
-  ): Promise<void>;
-  handleGroupAdminNotice(
-    bot: Bot,
-    event: event.GroupAdminNoticeEvent | undefined
-  ): Promise<void>;
+  handlePrivateMessage(bot: Bot, event: event.PrivateMessageEvent | undefined): Promise<void>;
+  handleGroupMessage(bot: Bot, event: event.GroupMessageEvent | undefined): Promise<void>;
+  handleGroupUploadNotice(bot: Bot, event: event.GroupUploadNoticeEvent | undefined): Promise<void>;
+  handleGroupAdminNotice(bot: Bot, event: event.GroupAdminNoticeEvent | undefined): Promise<void>;
   handleGroupDecreaseNotice(
     bot: Bot,
-    event: event.GroupDecreaseNoticeEvent | undefined
+    event: event.GroupDecreaseNoticeEvent | undefined,
   ): Promise<void>;
   handleGroupIncreaseNotice(
     bot: Bot,
-    event: event.GroupIncreaseNoticeEvent | undefined
+    event: event.GroupIncreaseNoticeEvent | undefined,
   ): Promise<void>;
-  handleGroupBanNotice(
-    bot: Bot,
-    event: event.GroupBanNoticeEvent | undefined
-  ): Promise<void>;
-  handleFriendAddNotice(
-    bot: Bot,
-    event: event.FriendAddNoticeEvent | undefined
-  ): Promise<void>;
-  handleGroupRecallNotice(
-    bot: Bot,
-    event: event.GroupRecallNoticeEvent | undefined
-  ): Promise<void>;
+  handleGroupBanNotice(bot: Bot, event: event.GroupBanNoticeEvent | undefined): Promise<void>;
+  handleFriendAddNotice(bot: Bot, event: event.FriendAddNoticeEvent | undefined): Promise<void>;
+  handleGroupRecallNotice(bot: Bot, event: event.GroupRecallNoticeEvent | undefined): Promise<void>;
   handleFriendRecallNotice(
     bot: Bot,
-    event: event.FriendRecallNoticeEvent | undefined
+    event: event.FriendRecallNoticeEvent | undefined,
   ): Promise<void>;
-  handleFriendRequest(
-    bot: Bot,
-    event: event.FriendRequestEvent | undefined
-  ): Promise<void>;
-  handleGroupRequest(
-    bot: Bot,
-    event: event.GroupRequestEvent | undefined
-  ): Promise<void>;
-  handleChannelMessage(
-    bot: Bot,
-    event: event.ChannelMessageEvent | undefined
-  ): Promise<void>;
+  handleFriendRequest(bot: Bot, event: event.FriendRequestEvent | undefined): Promise<void>;
+  handleGroupRequest(bot: Bot, event: event.GroupRequestEvent | undefined): Promise<void>;
+  handleChannelMessage(bot: Bot, event: event.ChannelMessageEvent | undefined): Promise<void>;
 };
 
 type GetEvent<T> = T extends [Bot, infer S] ? S : never;

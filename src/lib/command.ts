@@ -1,23 +1,21 @@
-import { Bot } from "ts-pbbot";
-import { Message, MessageReceipt } from "ts-pbbot/lib/proto/onebot_base";
-import { config } from "./config";
-import { MaybePromise } from "./def/common";
+import { Bot } from 'ts-pbbot';
+import { Message, MessageReceipt } from 'ts-pbbot/lib/proto/onebot_base';
+import { config } from './config';
+import { MaybePromise } from './def/common';
 import {
   MessageAt,
   MessageBack,
   MessageCommonType,
   MessageText,
-  MsgEventRespType,
   MsgEventType,
   sendBackMsg,
-} from "./def/Message";
-import { isNeedHandleEvent } from "./def/Plugin";
-import { registerInternal } from "./EventManager";
-import { colors, Logger, prefix } from "./tools/logger";
-import * as LRUcache from "lru-cache";
-import { deleteTempMsg, watchTempMsg } from "./def/TempMsg";
+} from './def/Message';
+import { isNeedHandleEvent } from './def/Plugin';
+import { registerInternal } from './EventManager';
+import { colors, Logger, prefix } from './tools/logger';
+import { deleteTempMsg, watchTempMsg } from './def/TempMsg';
 
-export const cmdTag = "!";
+export const cmdTag = '!';
 
 /**
  * 命令处理器的参数
@@ -34,7 +32,7 @@ export type CommandArgs<E extends keyof MsgEventType> = {
    * @param msg 响应的内容
    * @param response 响应格式(`re`: 回复原消息, `at`: 艾特用户, `no`: 直接发送), 默认为`re`
    */
-  back: (msg: MessageBack, response?: "re" | "at" | "no") => Promise<void>;
+  back: (msg: MessageBack, response?: 're' | 'at' | 'no') => Promise<void>;
 
   /**
    * 发出加载提示
@@ -49,10 +47,7 @@ export type CommandArgs<E extends keyof MsgEventType> = {
    * 1. 命令在channel上触发, channel目前不支持撤回, 所以消息不会发出
    * 2. bot客户端版本过低, 无法撤回消息, 此时消息已经发出, 但无法自动撤回
    */
-  loadingNotice: (
-    txt?: MessageBack,
-    response?: "re" | "at" | "no"
-  ) => Promise<boolean>;
+  loadingNotice: (txt?: MessageBack, response?: 're' | 'at' | 'no') => Promise<boolean>;
   /**
    * 机器人
    */
@@ -94,19 +89,17 @@ export function registerCommand<E extends keyof MsgEventType>(
   name: string,
   cmds: string | string[],
   type: E | E[],
-  handler: (cmd: CommandArgs<E>) => MaybePromise<void>
+  handler: (cmd: CommandArgs<E>) => MaybePromise<void>,
 ) {
-  if (typeof cmds === "string") cmds = [cmds];
+  if (typeof cmds === 'string') cmds = [cmds];
   cmds.forEach((cmd) => {
-    if (cmd.indexOf(":") >= 0) throw new Error("非法命令: " + cmd);
+    if (cmd.indexOf(':') >= 0) throw new Error('非法命令: ' + cmd);
   });
 
   const setInfo = (target: string, cmd: string) => {
     const old: CommandInfo | undefined = commands[target];
     const info: CommandInfo = { name, cmd, handler: { ...old?.handler } };
-    (typeof type === "string" ? [type] : type).forEach(
-      (t) => (info.handler[t] = handler as any)
-    );
+    (typeof type === 'string' ? [type] : type).forEach((t) => (info.handler[t] = handler as any));
     commands[target] = info;
   };
   cmds.forEach((cmd) => {
@@ -118,7 +111,7 @@ export function registerCommand<E extends keyof MsgEventType>(
         Logger.pluginColor(name),
         `命令 "${cmd}" 与`,
         Logger.pluginColor(commands[name].name),
-        `冲突`
+        `冲突`,
       );
     }
     setInfo(`${name}:${cmd}`, cmd);
@@ -126,8 +119,8 @@ export function registerCommand<E extends keyof MsgEventType>(
   console.log(
     prefix.CMD,
     Logger.pluginColor(name),
-    "已注册命令:",
-    colors.magenta(`[${cmds.join(", ")}]`)
+    '已注册命令:',
+    colors.magenta(`[${cmds.join(', ')}]`),
   );
 }
 /**
@@ -140,36 +133,30 @@ export function registerCommand<E extends keyof MsgEventType>(
 const handler = async <E extends keyof MsgEventType>(
   bot: Bot | undefined,
   event: MsgEventType[E] | undefined,
-  type: E
+  type: E,
 ): Promise<void> => {
   if (!bot || !event) return;
   if (event.messageType !== type)
     return err(`无法处理消息事件: mt: ${event.messageType} != ${type}`);
 
-  if (event.postType !== "message")
-    return err(`无法处理消息事件: pt: ${event.postType}`);
+  if (event.postType !== 'message') return err(`无法处理消息事件: pt: ${event.postType}`);
 
   const message = [...event.message];
 
   //消息指向性检查, 私聊消息/首位为at机器人
   if (!message.length) return;
-  if ((message[0]?.type as MessageCommonType) === "at") {
+  if ((message[0]?.type as MessageCommonType) === 'at') {
     const at = message.shift() as MessageAt;
     if (at.data.qq != event.selfId.toString()) return;
     if (!message.length) return;
-  } else if (type !== "private") return;
+  } else if (type !== 'private') return;
 
   //截取命令标记
   const fst = message[0] as MessageText;
-  if (fst?.type !== "text" || !fst.data.text) return;
-  const fstTxt = fst.data.text.trimStart().split(" ");
+  if (fst?.type !== 'text' || !fst.data.text) return;
+  const fstTxt = fst.data.text.trimStart().split(' ');
   let realcmd = fstTxt[0];
-  if (
-    !realcmd ||
-    realcmd.length < cmdTag.length + 1 ||
-    !realcmd.startsWith(cmdTag)
-  )
-    return;
+  if (!realcmd || realcmd.length < cmdTag.length + 1 || !realcmd.startsWith(cmdTag)) return;
 
   //获取命令并检测插件是否正在使用
   realcmd = realcmd.substring(cmdTag.length);
@@ -183,15 +170,14 @@ const handler = async <E extends keyof MsgEventType>(
     console.debug(
       prefix.DEBUG,
       prefix.CMD,
-      "唤起命令:",
+      '唤起命令:',
       colors.bold(realcmd),
-      `(来自${Logger.pluginColor(cmd.name)})`
+      `(来自${Logger.pluginColor(cmd.name)})`,
     );
 
   //处理参数 message -> args
   fstTxt.shift();
-  if (!fstTxt.length || !(fst.data.text = fstTxt.join(" ").trim()))
-    message.shift();
+  if (!fstTxt.length || !(fst.data.text = fstTxt.join(' ').trim())) message.shift();
 
   let loadingMsg: string;
   await handler({
@@ -201,11 +187,11 @@ const handler = async <E extends keyof MsgEventType>(
     bot,
     event,
     type,
-    async back(msg, response = "re") {
+    async back(msg, response = 're') {
       sendBackMsg(type, bot, event, msg, response);
     },
-    async loadingNotice(msg, response = "re") {
-      if (type === "channel") return false; //暂不支持撤回频道消息, 所以取消
+    async loadingNotice(msg, response = 're') {
+      if (type === 'channel') return false; //暂不支持撤回频道消息, 所以取消
 
       if (loadingMsg) deleteTempMsg(loadingMsg);
       if (msg) {
@@ -214,9 +200,9 @@ const handler = async <E extends keyof MsgEventType>(
           console.warn(
             prefix.WARN,
             prefix.CMD,
-            "机器人",
-            Logger.qqColor(bot.botId, "B"),
-            "不支持消息撤回, 消息已发出,无法撤回! 请及时更新机器人版本"
+            '机器人',
+            Logger.qqColor(bot.botId, 'B'),
+            '不支持消息撤回, 消息已发出,无法撤回! 请及时更新机器人版本',
           );
           return false;
         }
@@ -227,15 +213,9 @@ const handler = async <E extends keyof MsgEventType>(
   });
 };
 
-registerInternal("handlePrivateMessage", (bot, event) =>
-  handler(bot, event as any, "private")
-);
-registerInternal("handleGroupMessage", (bot, event) =>
-  handler(bot, event as any, "group")
-);
-registerInternal("handleChannelMessage", (bot, event) =>
-  handler(bot, event as any, "channel")
-);
+registerInternal('handlePrivateMessage', (bot, event) => handler(bot, event as any, 'private'));
+registerInternal('handleGroupMessage', (bot, event) => handler(bot, event as any, 'group'));
+registerInternal('handleChannelMessage', (bot, event) => handler(bot, event as any, 'channel'));
 
 /**打印错误 */
 function err(...arg: any[]) {

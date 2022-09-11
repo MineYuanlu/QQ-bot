@@ -1,27 +1,27 @@
-import { Bot, Msg } from "ts-pbbot";
+import { Bot, Msg } from 'ts-pbbot';
 import {
   SendChannelMsgResp,
   SendGroupMsgResp,
   SendPrivateMsgResp,
-} from "ts-pbbot/lib/proto/onebot_api";
-import { Message } from "ts-pbbot/lib/proto/onebot_base";
+} from 'ts-pbbot/lib/proto/onebot_api';
+import { Message } from 'ts-pbbot/lib/proto/onebot_base';
 import {
   PrivateMessageEvent,
   GroupMessageEvent,
   ChannelMessageEvent,
-} from "ts-pbbot/lib/proto/onebot_event";
-import { MaybeArray } from "./common";
+} from 'ts-pbbot/lib/proto/onebot_event';
+import { MaybeArray } from './common';
 
 export type MessageAt = {
-  type: "at";
+  type: 'at';
   data: { qq: string };
 };
 export type MessageText = {
-  type: "text";
+  type: 'text';
   data: { text: string };
 };
 export type MessageImage = {
-  type: "image";
+  type: 'image';
   data: {
     image_id: string;
     file: string;
@@ -36,7 +36,7 @@ export type MessageCommon = MessageAt | MessageText | MessageImage;
 /**
  * 常见的消息类型字符串
  */
-export type MessageCommonType = MessageCommon["type"];
+export type MessageCommonType = MessageCommon['type'];
 
 export type MessageBack = MaybeArray<string | Msg | Message | undefined>;
 
@@ -62,28 +62,25 @@ export type MsgEventRespType = {
  * @returns 一串信息
  */
 export function toMsg(mb: MessageBack): Msg | undefined {
-  if (mb === undefined || typeof mb === "string") return s2m(mb);
+  if (mb === undefined || typeof mb === 'string') return s2m(mb);
   if (mb instanceof Msg) return checkMsg(mb.messageList) ? mb : undefined;
   if (Array.isArray(mb)) {
     mb = mb.filter((x) => x !== undefined);
-    let hasSenior = mb.some((x) => typeof x !== "string");
+    const hasSenior = mb.some((x) => typeof x !== 'string');
 
     if (hasSenior) {
       const msg = Msg.builder();
-      mb.flatMap((x) => (x instanceof Msg ? x.messageList : x)).forEach(
-        (x, i, arr) => {
-          if (x === undefined) return;
-          if (typeof x === "string")
-            msg.text(i == arr.length - 1 ? x : x + "\n");
-          else {
-            msg.messageList.push(x);
-            if (i < arr.length - 1) msg.text("\n");
-          }
+      mb.flatMap((x) => (x instanceof Msg ? x.messageList : x)).forEach((x, i, arr) => {
+        if (x === undefined) return;
+        if (typeof x === 'string') msg.text(i == arr.length - 1 ? x : x + '\n');
+        else {
+          msg.messageList.push(x);
+          if (i < arr.length - 1) msg.text('\n');
         }
-      );
+      });
       return msg;
     }
-    return s2m(mb.join("\n"));
+    return s2m(mb.join('\n'));
   }
   if (!checkMsg([mb])) return undefined;
   const msg = Msg.builder();
@@ -91,7 +88,7 @@ export function toMsg(mb: MessageBack): Msg | undefined {
   return msg;
 }
 /**新行的msg */
-const newLineMsg = Msg.builder().text("\n").messageList[0];
+const newLineMsg = Msg.builder().text('\n').messageList[0];
 /**
  * 响应消息
  * @param type 消息类型
@@ -106,34 +103,27 @@ export async function sendBackMsg<E extends keyof MsgEventType>(
   bot: Bot,
   event: MsgEventType[E],
   msg: MessageBack,
-  response: "re" | "at" | "no" = "re"
-): Promise<MsgEventRespType[E]["messageId"] | undefined> {
+  response: 're' | 'at' | 'no' = 're',
+): Promise<MsgEventRespType[E]['messageId'] | undefined> {
   if (!(msg = toMsg(msg))) return undefined;
   switch (type) {
-    case "private":
-      return (
-        await bot.sendPrivateMessage((event as PrivateMessageEvent).userId, msg)
-      )?.messageId;
-    case "group":
-      if (response === "re") {
+    case 'private':
+      return (await bot.sendPrivateMessage((event as PrivateMessageEvent).userId, msg))?.messageId;
+    case 'group':
+      if (response === 're') {
         //TODO reply无法使用
-        response = "at";
+        response = 'at';
       }
-      if (response === "at") {
-        msg.at(
-          (event as GroupMessageEvent).userId,
-          event.sender?.nickname || "-"
-        );
+      if (response === 'at') {
+        msg.at((event as GroupMessageEvent).userId, event.sender?.nickname || '-');
         msg.messageList.unshift(msg.messageList.pop()!, newLineMsg);
       }
-      return (
-        await bot.sendGroupMessage((event as GroupMessageEvent).groupId, msg)
-      )?.messageId;
-    case "channel":
-      if (response === "at") {
+      return (await bot.sendGroupMessage((event as GroupMessageEvent).groupId, msg))?.messageId;
+    case 'channel':
+      if (response === 'at') {
         const id = (event as ChannelMessageEvent).sender?.tinyId;
         if (id) {
-          msg.at(id, event.sender?.nickname || "-");
+          msg.at(id, event.sender?.nickname || '-');
           msg.messageList.unshift(msg.messageList.pop()!, newLineMsg);
         }
       }
@@ -141,11 +131,11 @@ export async function sendBackMsg<E extends keyof MsgEventType>(
         await bot.sendChannelMessage(
           (event as ChannelMessageEvent).guildId,
           (event as ChannelMessageEvent).channelId,
-          msg
+          msg,
         )
       )?.messageId;
     default:
-      throw new Error("Unknown type: " + type);
+      throw new Error('Unknown type: ' + type);
   }
 }
 
@@ -155,5 +145,5 @@ function s2m(msg: string | undefined) {
 }
 /**@returns not empty msg */
 function checkMsg(msg: Message[]) {
-  return msg.some((x) => x.type !== "text" || (x as MessageText).data.text);
+  return msg.some((x) => x.type !== 'text' || (x as MessageText).data.text);
 }

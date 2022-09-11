@@ -1,12 +1,12 @@
-import { Expand, MaybePromise } from "./common";
-import { prefix, Logger } from "../tools/logger";
-import { MessageBack, MsgEventType } from "./Message";
-import { channel2guild, ServiceString, toServiceString } from "./ServiceString";
+import { Expand, MaybePromise } from './common';
+import { prefix, Logger } from '../tools/logger';
+import { MessageBack, MsgEventType } from './Message';
+import { channel2guild, ServiceString, toServiceString } from './ServiceString';
 import {
   ChannelMessageEvent,
   GroupMessageEvent,
   PrivateMessageEvent,
-} from "ts-pbbot/lib/proto/onebot_event";
+} from 'ts-pbbot/lib/proto/onebot_event';
 
 /**
  * 插件定义
@@ -14,11 +14,7 @@ import {
 export interface Plugin {
   onEnable?: () => MaybePromise<void>;
   onDisable?: () => MaybePromise<void>;
-  getHelp?: (data: {
-    sender: number;
-    bot: number;
-    groupId?: number;
-  }) => MaybePromise<MessageBack>;
+  getHelp?: (data: { sender: number; bot: number; groupId?: number }) => MaybePromise<MessageBack>;
   noClose?: boolean;
 }
 
@@ -30,7 +26,7 @@ export type CreateHandler = (
   type: string,
   config: any,
   bot: number[],
-  service: ServiceString[]
+  service: ServiceString[],
 ) => MaybePromise<void>;
 
 /**创建参数 */
@@ -87,13 +83,12 @@ export function isEnabled(name: string | undefined) {
 export function isNeedHandle(
   name: string | undefined,
   botId: string | number | undefined,
-  ss: ServiceString | undefined
+  ss: ServiceString | undefined,
 ): boolean {
   if (!name) return false;
   const plugin = plugins[name];
   if (!plugin?.enabled) return false;
-  if (botId !== undefined && plugin.botSet && !plugin.botSet.has(Number(botId)))
-    return false;
+  if (botId !== undefined && plugin.botSet && !plugin.botSet.has(Number(botId))) return false;
   if (ss !== undefined && plugin.serviceSet && !plugin.serviceSet.has(ss)) {
     const gss = channel2guild(ss);
     if (!gss || !plugin.serviceSet.has(gss)) return false;
@@ -111,26 +106,26 @@ export function isNeedHandle(
 export function isNeedHandleEvent<T extends keyof MsgEventType>(
   name: string | undefined,
   event: MsgEventType[T],
-  type: T
+  type: T,
 ): boolean {
   let ss: ServiceString;
   switch (type) {
-    case "private":
+    case 'private':
       if (isAdmin((event as PrivateMessageEvent).userId)) return true;
-      ss = toServiceString("U", (event as PrivateMessageEvent).userId);
+      ss = toServiceString('U', (event as PrivateMessageEvent).userId);
       break;
-    case "group":
-      ss = toServiceString("G", (event as GroupMessageEvent).groupId);
+    case 'group':
+      ss = toServiceString('G', (event as GroupMessageEvent).groupId);
       break;
-    case "channel":
+    case 'channel':
       ss = toServiceString(
-        "C",
+        'C',
         (event as ChannelMessageEvent).guildId,
-        (event as ChannelMessageEvent).channelId
+        (event as ChannelMessageEvent).channelId,
       );
       break;
     default:
-      throw new Error("Unknown Type: " + type);
+      throw new Error('Unknown Type: ' + type);
   }
   return isNeedHandle(name, event.selfId, ss);
 }
@@ -143,33 +138,29 @@ export function isNeedHandleEvent<T extends keyof MsgEventType>(
  */
 export async function setPluginEnable(
   name: string | undefined,
-  enable: boolean
+  enable: boolean,
 ): Promise<string | undefined> {
   const plugin = name ? plugins[name] : undefined;
-  if (!plugin) return "找不到插件";
+  if (!plugin) return '找不到插件';
   if (plugin.plugin.noClose && !enable) {
-    console.error(
-      prefix.ERROR,
-      "无法关闭",
-      Logger.pluginColor(name),
-      "插件: 插件是不可关闭的"
-    );
-    return "插件不可关闭";
+    console.error(prefix.ERROR, '无法关闭', Logger.pluginColor(name), '插件: 插件是不可关闭的');
+    return '插件不可关闭';
   }
-  const func = plugin.plugin[enable ? "onEnable" : "onDisable"];
+  const func = plugin.plugin[enable ? 'onEnable' : 'onDisable'];
   try {
+    plugin.logger.info('插件启动中...');
     if (func) await func();
     plugin.enabled = enable;
   } catch (err) {
     console.error(
       prefix.ERROR,
-      `无法${enable ? "启动" : "关闭"}`,
+      `无法${enable ? '启动' : '关闭'}`,
       Logger.pluginColor(name),
-      "插件:",
-      err
+      '插件:',
+      err,
     );
     plugin.enabled = false;
-    return `${enable ? "启动" : "关闭"} ${name} 插件时出错\n${err}`;
+    return `${enable ? '启动' : '关闭'} ${name} 插件时出错\n${err}`;
   }
 }
 /**
@@ -188,9 +179,7 @@ export async function setPluginEnable(
  * @param creater 插件创造器
  * @returns 构建结果
  */
-export function buildCreate(
-  creater: (data: CreateArgs) => MaybePromise<Plugin>
-): CreateHandler {
+export function buildCreate(creater: (data: CreateArgs) => MaybePromise<Plugin>): CreateHandler {
   return async (name, type, config, bot, service) => {
     const botSet = bot.length ? new Set(bot) : null;
     const serviceSet = service.length ? new Set(service) : null;
@@ -219,4 +208,4 @@ export function buildCreate(
   };
 }
 
-import { isAdmin } from "../../plugins/admin";
+import { isAdmin } from '../../plugins/admin';
