@@ -1,4 +1,4 @@
-import * as _colors from 'colors/safe';
+import _colors  from 'colors/safe';
 
 export const colors = _colors;
 export const prefix = {
