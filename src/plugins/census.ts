@@ -52,7 +52,7 @@ export const create = buildCreate(({ name, type, logger }) => {
     msg: string,
   ) => {
     if (insert)
-      insert.run(bot, service, type, user.toString(), group, channel, guild?.toString(), msg);
+      insert.run(Date.now(),bot, service, type, user.toString(), group, channel, guild?.toString(), msg);
   };
 
   register(name, 'handleConnect', (bot) => {
@@ -156,7 +156,7 @@ export const create = buildCreate(({ name, type, logger }) => {
       if (db) db.close();
       db = initDB(dir);
       insert = db.prepare(
-        `INSERT INTO "msg"("bot","service","type","user","group","channel","guild","msg")VALUES(?,?,?,?,?,?,?,?);`,
+        `INSERT INTO "msg"("time","bot","service","type","user","group","channel","guild","msg")VALUES(?,?,?,?,?,?,?,?,?);`,
       );
       logger.info('插件启动');
     },
@@ -172,7 +172,7 @@ function initDB(dir: string) {
   const db = new Database(resolve(dir, 'data.sqlite3.db'));
   db.prepare(
     `CREATE TABLE IF NOT EXISTS "msg" (
-"time" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+"time" integer NOT NULL,
 "bot" integer NOT NULL,
 "service" TEXT NOT NULL,
 "user" TEXT NOT NULL,
